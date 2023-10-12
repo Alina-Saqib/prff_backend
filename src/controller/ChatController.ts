@@ -27,10 +27,10 @@ export const fetchChat = async (req: Request, res: Response) => {
 
   
     const chatData = chats.map((chat) => {
-      const messages = JSON.parse(chat.messages as any);
+      
       return {
         ...chat.toJSON(),
-        messages,
+        
       };
     });
 
@@ -97,7 +97,7 @@ export const  messageFetchController = async(req:Request,res:Response) =>{
       return res.status(404).json({ error: 'Chat not found' });
     }
 
-    const messages = JSON.parse(chat.messages as any);
+    const messages = chat.messages as any
 
     return res.status(200).json({ messages });
   } catch (error) {

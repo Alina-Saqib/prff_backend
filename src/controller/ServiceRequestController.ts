@@ -116,7 +116,6 @@ export const autoMessages = async (req: Request, res: Response) =>{
     res.status(500).json({ error: 'Internal server error' });
   }
 }
-
 export const acceptRequest = async (req: Request, res: Response) => {
   try {
     const serviceRequestId = req.query.serviceRequestId;
@@ -124,7 +123,7 @@ export const acceptRequest = async (req: Request, res: Response) => {
     const messageId = req.params.messageId;
 
     const serviceRequest = await ServiceRequest.findOne({ where: { id: serviceRequestId } });
-
+    
     if (!serviceRequest) {
       return res.status(404).json({ message: 'Service request not found.' });
     }
@@ -134,7 +133,8 @@ export const acceptRequest = async (req: Request, res: Response) => {
     }
 
     const automatedMessage = await AutomatedMessages.findByPk(messageId);
-    const arrayAcceptedProvidersIds = JSON.parse( serviceRequest.acceptedProviderIds as any)
+  const stringifyArrayOfProviders =JSON.stringify(serviceRequest.acceptedProviderIds as any)
+  const arrayAcceptedProvidersIds = JSON.parse(stringifyArrayOfProviders);
 
     if (serviceRequest.acceptedProviderIds === null ||serviceRequest.acceptedProviderIds === undefined ){
       serviceRequest.acceptedProviderIds = [];
@@ -148,9 +148,9 @@ export const acceptRequest = async (req: Request, res: Response) => {
       await serviceRequest.save();
     } else {
       return res.status(400).json({ message: 'Provider already accepted.' });
-    }
+    }   
 
-
+ 
     const chat = await Chat.findOne({
       where: {
         user1: serviceRequest.userId,
@@ -165,7 +165,8 @@ export const acceptRequest = async (req: Request, res: Response) => {
         timestamp: new Date(),
       };
 
-      const messageArray =JSON.parse(chat.messages as any)
+      const stringMessage = JSON.stringify(chat.messages as any)
+      const messageArray =JSON.parse(stringMessage)
       messageArray.push(newMessage);
       chat.messages= messageArray;
       await chat.save();
@@ -194,76 +195,75 @@ export const acceptRequest = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
-
-
 export const serviceFound = async (req: Request, res: Response) => {
-  try {
-    const serviceRequestId = req.query.serviceRequestId;
-    const serviceProviderId = req.query.serviceProviderId as String;
-   
-    const serviceRequest = await ServiceRequest.findOne({
-      where: { id: serviceRequestId },
-    });
-
-    if (!serviceRequest) {
-      return res.status(404).json({ message: 'Service request not found.' });
-    }
-
-    if(serviceRequest.status == 'cancelled' || serviceRequest.status == 'found'){
-      return res.status(404).json({ message: 'Request Already Cancelled or found' });
+    try {
+      const serviceRequestId = req.query.serviceRequestId;
+      const serviceProviderId = req.query.serviceProviderId as String;
+     
+      const serviceRequest = await ServiceRequest.findOne({
+        where: { id: serviceRequestId },
+      });
   
-    }
-
-    const topProviderIdsArray = JSON.parse(serviceRequest.topProviderIds as any);
- 
-    if (topProviderIdsArray.includes(serviceProviderId)) {
-      await serviceRequest.update({
-        status: 'found',
-        serviceProviderDetailsId: serviceProviderId,
-      })
-    } 
-
-
-    const acceptedProvidersIds = JSON.parse(serviceRequest.acceptedProviderIds as any)    
-    const acceptProviderIds = acceptedProvidersIds.filter(
-        (providerId: any) => providerId != serviceProviderId
-      );
-
-      for (const providerId of acceptProviderIds) {
-        const chat = await Chat.findOne({
-          where: {
-            [Op.or]: [
-              { user1: providerId, user2: serviceRequest.userId },
-              { user1:  serviceRequest.userId, user2: providerId },
-            ],
-          },
-        });
-      
-        if (chat) {
-
-          const newMessage = {
-            sender:  serviceRequest.userId,
-            text: 'Service has been found.',
-            timestamp: new Date(),
-          };
-            const arrayChatExist = JSON.parse(chat.messages as any)
-            arrayChatExist.push(newMessage as any);
-            chat.messages = arrayChatExist;
-            await chat.save();
-            
-        }
+      if (!serviceRequest) {
+        return res.status(404).json({ message: 'Service request not found.' });
       }
-   
-
-
+  
+      if(serviceRequest.status == 'cancelled' || serviceRequest.status == 'found'){
+        return res.status(404).json({ message: 'Request Already Cancelled or found' });
     
-    res.status(200).json({ message: 'Service marked as found.' });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
+      }
+  
+      const stringTopProviders = JSON.stringify(serviceRequest.topProviderIds as any) 
+       const topProviderIdsArray = JSON.parse(stringTopProviders); 
+   
+      if (topProviderIdsArray.includes(serviceProviderId)) {
+        await serviceRequest.update({
+          status: 'found',
+          serviceProviderDetailsId: serviceProviderId,
+        })
+      } 
+  
+       const stringaccpetedProviderIds = JSON.stringify(serviceRequest.acceptedProviderIds as any);
+       const acceptedProvidersIds = JSON.parse(stringaccpetedProviderIds);    
+      const acceptProviderIds = acceptedProvidersIds.filter(
+          (providerId: any) => providerId != serviceProviderId
+        );
+  
+        for (const providerId of acceptProviderIds) {
+          const chat = await Chat.findOne({
+            where: {
+              [Op.or]: [
+                { user1: providerId, user2: serviceRequest.userId },
+                { user1:  serviceRequest.userId, user2: providerId },
+              ],
+            },
+          });
+        
+          if (chat) {
+  
+            const newMessage = {
+              sender:  serviceRequest.userId,
+              text: 'Service has been found.',
+              timestamp: new Date(),
+            };
+              const stringChat  = JSON.stringify(chat.messages as any);
+               const arrayChatExist = JSON.parse(stringChat);
+              arrayChatExist.push(newMessage as any);
+              chat.messages = arrayChatExist;
+              await chat.save();
+              
+          }
+        }
+     
+  
+  
+      
+      res.status(200).json({ message: 'Service marked as found.' });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  };
 
 export const serviceRerequestController = async (req: Request, res: Response) => {
   const  serviceRequestId  = req.query.serviceRequestId; 
@@ -376,8 +376,8 @@ export const cancelRequestController = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No provider accepted request it is cancelled' });
     }
 
-
-    const accpetedProvideridsArray = JSON.parse(request.acceptedProviderIds as any);
+    const stringacceptedProvider = JSON.stringify(request.acceptedProviderIds as any);
+    const accpetedProvideridsArray = JSON.parse(stringacceptedProvider);
 
 
     
@@ -398,7 +398,8 @@ export const cancelRequestController = async (req: Request, res: Response) => {
           text: 'Request is Cancenlled',
           timestamp: new Date(),
         };
-          const arrayChatExist = JSON.parse(chatExist.messages as any)
+          const stringChat = JSON.stringify(chatExist.messages as any) 
+          const arrayChatExist = JSON.parse(stringChat)
           arrayChatExist.push(newMessage as any);
           chatExist.messages = arrayChatExist;
           await chatExist.save();
@@ -414,6 +415,7 @@ export const cancelRequestController = async (req: Request, res: Response) => {
 };
 
 
+
 export const getServiceRequest = async (req:Request,res: Response) =>{
 
   const serviceRequestId = req.query.id;
@@ -425,8 +427,7 @@ export const getServiceRequest = async (req:Request,res: Response) =>{
     return res.status(403).json({ error: "Service Request not found"})
   }
 
-  const ArrayOfAcceptedRequestIds = JSON.parse(serviceRequest.acceptedProviderIds as any)
-
+  
   const serviceRequestResponse ={
       id: serviceRequest.id,
       category: serviceRequest.category,
@@ -434,14 +435,14 @@ export const getServiceRequest = async (req:Request,res: Response) =>{
       description: serviceRequest.description,
       timeframe: serviceRequest.timeframe,
       budget: serviceRequest.budget,
-      acceptedProvidersIds : ArrayOfAcceptedRequestIds
-   
+      acceptedProvidersIds : serviceRequest.acceptedProviderIds   
 
     }
 
 
     return res.status(200).json({serviceRequestResponse})}
     catch(err){
+    console.log(err);
     return res.status(500).json({error: "Internal Server Error "})
   }
     }
@@ -458,12 +459,15 @@ export const serviceRequestOfProviders = async (req:Request,res: Response) => {
         const serviceRequests = await ServiceRequest.findAll();
     
         const matchingServiceRequests = serviceRequests.filter(request => {
-          const topProviderIds = JSON.parse(request.topProviderIds as any);
+          console.log(request.topProviderIds);
+         const topProviderIds = request.topProviderIds as any; 
           return topProviderIds.includes(providerId);
+         
         });
     
         if (matchingServiceRequests.length === 0) {
-          return res.status(404).json({ error: "Service request not found for the providerId" });
+              
+              return res.status(404).json({ error: "Service request not found for the providerId" });
         }
     
         const ResponseMatchingService = matchingServiceRequests.map(serviceRequest => ({
@@ -473,6 +477,10 @@ export const serviceRequestOfProviders = async (req:Request,res: Response) => {
           description: serviceRequest.description,
           timeframe: serviceRequest.timeframe,
           budget: serviceRequest.budget,
+         status: serviceRequest.status,
+         acceptedstatus: serviceRequest.acceptedProviderIds
+          ? serviceRequest.acceptedProviderIds.includes(providerId as any)
+          : "No one accepted"
         }));
     
         return res.status(200).json({ ResponseMatchingService });
@@ -483,3 +491,39 @@ export const serviceRequestOfProviders = async (req:Request,res: Response) => {
       }
     };
     
+export const UsersRequests = async (req: Request, res: Response) => {
+      const userId = req.query.userId;
+    
+      if (!userId) {
+        return res.status(403).json({ error: 'User Id not found' });
+      }
+    
+      try {
+       
+        const serviceRequest = await ServiceRequest.findAll({
+          where: {
+            userId: userId,
+          },
+        });
+
+    
+  if (serviceRequest.length === 0) {
+    return res.status(404).json({ error: 'No service requests found for the provided userId' });
+  }
+
+  const responseServiceRequests = serviceRequest.map((serviceRequest) => ({
+    id: serviceRequest.id,
+    category: serviceRequest.category,
+    service: serviceRequest.service,
+    description: serviceRequest.description,
+    timeframe: serviceRequest.timeframe,
+    budget: serviceRequest.budget
+   // timestamp: serviceRequest.createdAt.toISOString()
+  }));
+   
+        return res.status(200).json(serviceRequest);
+      } catch (error) {
+        console.error('Error:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+      }
+    };
