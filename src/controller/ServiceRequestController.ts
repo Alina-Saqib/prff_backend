@@ -360,7 +360,7 @@ export const serviceRerequestController = async (req: Request, res: Response) =>
 
    
     const newProviders = await findNewProviders(existingTopProviderIds, { category, service });
-
+   
     const providersWithScores= newProviders.map((provider: any) => ({
       ...provider.toJSON(),
       score: calculateSearchScore(provider, {category,service}),
@@ -379,6 +379,11 @@ export const serviceRerequestController = async (req: Request, res: Response) =>
       budget: originalRequest.budget,
       customer:  "anonymous customer"
 
+    }
+    if(originalRequest.topProviderIds.length === 0){
+      return res.status(200).json({
+        message: 'No more providers of this category or service',
+      });
     }
 
     res.status(200).json({ serviceRequest: ServiceRequestResponse , providerIdstosendNotification: originalRequest.topProviderIds});

@@ -54,5 +54,5 @@ router.post('/resend-verification-email', ResendVerificationEmail);
 
 router.get('/verify', verificationLink);
 router.post('/forget-password' ,forgetPassword)
-router.get('/password-reset' ,ResetPassword)
+router.post('/password-reset' ,ResetPassword)
 export default router;
