@@ -14,6 +14,8 @@ class ServiceProvider extends Model {
   public password!: string;
   public verify!: boolean;
   public isOnline!: boolean;
+  public verificationCode!: string;
+  public verificationCodeExpiresAt!: Date;
 }
 
 ServiceProvider.init(
@@ -39,7 +41,10 @@ ServiceProvider.init(
     ,
     isOnline: {type: DataTypes.BOOLEAN,
       defaultValue: false},
+      verificationCode:DataTypes.STRING,
+      verificationCodeExpiresAt: DataTypes.DATE
   },
+  
   {
     sequelize, 
     modelName: 'ServiceProvider', 

@@ -12,6 +12,9 @@ class User extends Model {
   public zipCode!: string;
   public password!: string;
   public verify!: boolean;
+  public verificationCode!: string;
+  public verificationCodeExpiresAt!: Date;
+  public isOnline!: boolean;
 }
 
 User.init(
@@ -32,8 +35,11 @@ User.init(
     zipCode: DataTypes.STRING,
     password: DataTypes.STRING,
     verify: {type: DataTypes.BOOLEAN,
+      defaultValue: false},
+    verificationCode:DataTypes.STRING,
+    verificationCodeExpiresAt: DataTypes.DATE,
+    isOnline: {type: DataTypes.BOOLEAN,
       defaultValue: false}
-      ,
   },
   {
     sequelize, 

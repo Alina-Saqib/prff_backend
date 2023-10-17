@@ -1,13 +1,13 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/connectDB'; 
 
-class  AutomatedMessages extends Model {
+class  IgnoreMessages extends Model {
   public id!: number;
   public MessageText!: string;
 
 }
 
-AutomatedMessages.init(
+IgnoreMessages.init(
   {
     MessageText: {
       type: DataTypes.STRING,
@@ -18,10 +18,10 @@ AutomatedMessages.init(
   },
   {
     sequelize,
-    modelName: 'AutomatedMessage', 
+    modelName: 'IgnoreMessages', 
   }
 );
 
 
 
-export default AutomatedMessages;
+export default IgnoreMessages;

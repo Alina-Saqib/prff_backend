@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Chat from '../model/ChatSchema';
 import sequelize from '../config/connectDB';  
 import { Op } from 'sequelize';
+import ServiceProvider from '../model/ServiceProviderSchema';
 
 
 
@@ -26,15 +27,42 @@ export const fetchChat = async (req: Request, res: Response) => {
     }
 
   
-    const chatData = chats.map((chat) => {
-      
+    const chatData = chats.map(async (chat) => {
+      const messages = JSON.parse(chat.messages as any);
+      const user1 = chat.user1;
+      const user2 = chat.user2;
+
+      // Check if either user is a provider and fetch business data if they are
+      let businessName;
+
+      // Check if user1 is a provider
+      if (user1) {
+        const provider1 = await ServiceProvider.findByPk(user1);
+        if (provider1) {
+          // If user1 is a provider, fetch their business data
+          businessName = provider1.business;
+        }
+      }
+
+      // Check if user2 is a provider
+      if (user2 && !businessName) {
+        const provider2 = await ServiceProvider.findByPk(user2);
+        if (provider2) {
+          // If user2 is a provider and user1 is not, fetch their business data
+          businessName = provider2.business;
+        }
+      }
+
       return {
         ...chat.toJSON(),
-        
+        messages,
+        businessName,
       };
     });
 
-    return res.status(200).json(chatData);
+    const chatDataWithBusiness = await Promise.all(chatData);
+
+    return res.status(200).json(chatDataWithBusiness);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Internal Server Error' });

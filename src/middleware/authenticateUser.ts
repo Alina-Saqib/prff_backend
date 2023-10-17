@@ -13,27 +13,33 @@ interface CustomRequest extends Request {
 export default async function authenticate(req: CustomRequest, res: Response, next: NextFunction) {
   const token = req.header('x-auth-token');
 
-
   if (!token) {
     return res.status(401).json({ msg: 'No token, authorization denied' });
   }
 
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as Secret) as JwtPayload;
- 
+    
+
+    if (decoded.providerId) {
+      const provider = await serviceProvider.findByPk(decoded.providerId);
+      if (!provider) {
+        return res.status(401).json({ msg: 'Provider not found' });
+      }
+      
+      req.user = provider;
+    } else if (decoded.userId) {
+      const user = await User.findByPk(decoded.userId);
+      if (!user) {
+        return res.status(401).json({ msg: 'User not found' });
+      }
    
-    const provider = await serviceProvider.findByPk(decoded.providerId);
-    const user = await User.findByPk(decoded.userId);
-
-  
-    req.user = provider || user;
-
-    if (!req.user) {
+      req.user = user;
+    } else {
       return res.status(401).json({ msg: 'User or provider not found' });
     }
 
-    next(); 
+    next();
   } catch (err) {
     res.status(401).json({ msg: 'Token is not valid' });
   }

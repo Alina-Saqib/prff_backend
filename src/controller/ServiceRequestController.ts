@@ -4,6 +4,7 @@ import ServiceProvider from '../model/ServiceProviderSchema';
 import ServiceRequest from '../model/ServiceRequestSchema'; 
 import AutomatedMessages from '../model/automatedMessageSchema';
 import Chat from '../model/ChatSchema';
+import IgnoreMessages from '../model/ignoreMessageSchema';
 
 export const serviceRequestController = async (req: Request, res: Response) => {
   const { category, service, description, timeframe, budget, searchRadius } = req.body;
@@ -21,6 +22,11 @@ export const serviceRequestController = async (req: Request, res: Response) => {
       searchRadius,
       status: 'searching', 
     });
+
+    const requestExpiresAt = new Date();
+    requestExpiresAt.setMinutes(requestExpiresAt.getMinutes() + 4); 
+
+    await newRequest.update({ requestExpiresAt });
     
 
     const filter = {
@@ -65,7 +71,8 @@ export const serviceRequestController = async (req: Request, res: Response) => {
       description: newRequest.description,
       timeframe: newRequest.timeframe,
       budget: newRequest.budget,
-      customer:  "anonymous customer"
+      customer:  "anonymous customer",
+      requestExpiresAt: newRequest.requestExpiresAt
 
     }
 
@@ -116,11 +123,29 @@ export const autoMessages = async (req: Request, res: Response) =>{
     res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+export const ignoreMessages = async (req: Request, res: Response) =>{
+
+  try {
+    const messages = await IgnoreMessages.findAll();
+
+    const messagesResponse = messages.map((message) => ({
+      id: message.id,
+      message: message.MessageText, 
+    }));
+    res.json(messagesResponse);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
 export const acceptRequest = async (req: Request, res: Response) => {
   try {
     const serviceRequestId = req.query.serviceRequestId;
     const serviceProviderId = req.query.serviceProviderId;
     const messageId = req.params.messageId;
+
+
 
     const serviceRequest = await ServiceRequest.findOne({ where: { id: serviceRequestId } });
     
@@ -195,6 +220,53 @@ export const acceptRequest = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
+export const ignoreRequest = async (req: Request, res: Response) => {
+  try {
+    const serviceRequestId = req.query.serviceRequestId;
+    const serviceProviderId = req.query.serviceProviderId as string;
+    const messageId = req.params.messageId;
+
+    const message = await IgnoreMessages.findByPk(messageId)
+
+    const serviceRequest = await ServiceRequest.findOne({
+      where: { id: serviceRequestId },
+    });
+
+    if (!serviceRequest) {
+      return res.status(404).json({ message: 'Service request not found.' });
+    }
+
+    if (serviceRequest.status === 'cancelled' || serviceRequest.status === 'found') {
+      return res.status(404).json({ message: 'Request Already Cancelled or found' });
+    }
+
+    const stringifyArrayOfProviders =JSON.stringify(serviceRequest.declinedProviderIds as any)
+    const arrayDeclinedProvidersIds = JSON.parse(stringifyArrayOfProviders);
+  
+      if (serviceRequest.declinedProviderIds === null ||serviceRequest.declinedProviderIds === undefined ){
+        serviceRequest.declinedProviderIds = [];
+        serviceRequest.declinedProviderIds.push(serviceProviderId as any)
+        await serviceRequest.save();
+   }
+   
+      else if (!arrayDeclinedProvidersIds.includes(serviceProviderId as any)) {
+        arrayDeclinedProvidersIds.push(serviceProviderId as string);
+        serviceRequest.declinedProviderIds = arrayDeclinedProvidersIds;
+        await serviceRequest.save();
+      } else {
+        return res.status(400).json({ message: 'Provider already Rejected.' });
+      }  
+    
+   
+    res.status(200).json({ message: 'Request ignored successfully', ReasonMessage: message?.MessageText });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: 'An error occurred while processing the request' });
+  }
+};
+
 export const serviceFound = async (req: Request, res: Response) => {
     try {
       const serviceRequestId = req.query.serviceRequestId;
@@ -480,7 +552,10 @@ export const serviceRequestOfProviders = async (req:Request,res: Response) => {
          status: serviceRequest.status,
          acceptedstatus: serviceRequest.acceptedProviderIds
           ? serviceRequest.acceptedProviderIds.includes(providerId as any)
-          : "No one accepted"
+          : "No one accepted",
+          declinedstatus:  serviceRequest.declinedProviderIds
+          ? serviceRequest.declinedProviderIds.includes(providerId as any)
+          : "No one declined"
         }));
     
         return res.status(200).json({ ResponseMatchingService });
@@ -518,7 +593,7 @@ export const UsersRequests = async (req: Request, res: Response) => {
     description: serviceRequest.description,
     timeframe: serviceRequest.timeframe,
     budget: serviceRequest.budget
-   // timestamp: serviceRequest.createdAt.toISOString()
+ 
   }));
    
         return res.status(200).json(serviceRequest);

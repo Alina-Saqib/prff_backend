@@ -1,6 +1,6 @@
 import { serviceProviderRegistration  } from '../controller/ServiceProviderRegistration';
 import { UserRegistration } from '../controller/UserRegistration';
-import { loginController } from '../controller/LoginController';
+import { loginController, ResendVerificationEmail, verificationLink, VerifyUser } from '../controller/LoginController';
 import { check } from 'express-validator';
 import express from 'express';
 const router = express.Router();
@@ -42,14 +42,14 @@ router.post(
 
 );
 
-// router.post(
-//     '/login-serviceProvider',
-//     [
-//       check('email', 'Email is required').isEmail(),
-//       check('password', 'Password is required').notEmpty(),
-//     ],
+router.post(
+    '/email-verification',
+    
 
-//     loginServiceProvider
+    VerifyUser
+);
 
-// );
+router.post('/resend-verification-email', ResendVerificationEmail);
+
+router.get('/verify', verificationLink);
 export default router;

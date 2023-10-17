@@ -15,7 +15,9 @@ class ServiceRequest extends Model {
   public status!: string;
   public topProviderIds! : string[];
   public acceptedProviderIds! : string[] | undefined;
+  public declinedProviderIds! : string[] | undefined;
   public serviceProviderDetailsId!: string;
+  public requestExpiresAt!: Date;
 }
 
 ServiceRequest.init(
@@ -45,15 +47,20 @@ ServiceRequest.init(
     acceptedProviderIds: {
       type: DataTypes.JSON,
     },
+    declinedProviderIds: {
+      type: DataTypes.JSON,
+    },
     serviceProviderDetailsId:{
       type: DataTypes.STRING,
       references: {
         model: ServiceProvider,
         key: 'roleId',
       }
-      
-     
-    }
+      },
+      requestExpiresAt:{
+        type: DataTypes.DATE
+      }
+
    
   },
   {

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import ServiceProvider from '../model/ServiceProviderSchema'; 
+import sendEmail from '../utility/nodemailer';
 
 export const serviceProviderRegistration = async (req: Request, res: Response) => {
   const errors = validationResult(req);
@@ -24,6 +25,9 @@ export const serviceProviderRegistration = async (req: Request, res: Response) =
     const hashedPassword = await bcrypt.hash(password, salt);
 
     try {
+
+      const verificationCode = generateVerificationCode();
+     
       // Create a new service provider using the Sequelize ServiceProvider model
       const newServiceProvider = await ServiceProvider.create({
         business,
@@ -34,9 +38,16 @@ export const serviceProviderRegistration = async (req: Request, res: Response) =
         zipCode,
         password: hashedPassword,
         verify: false,
+        verificationCode,
       });
 
-      res.status(201).json({ message: 'Service provider registered successfully' });
+      const verificationLink = `http://localhost:5000/auth/verify?code=${verificationCode}`;
+
+      const subject = 'Verification Code';
+      const text = `Your verification code is: ${verificationCode} and verification Link is  ${verificationLink}`;
+      sendEmail(email, subject, text);
+
+      res.status(201).json({ message: 'Service provider registered successfully. Email is send for verification.' });
     } catch (error) {
       res.status(500).json({ error: 'Error registering service provider' });
     }
@@ -44,3 +55,7 @@ export const serviceProviderRegistration = async (req: Request, res: Response) =
     res.status(400).json({ error: 'Password and confirm Password do not match' });
   }
 };
+
+function generateVerificationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
