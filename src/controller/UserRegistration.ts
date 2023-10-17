@@ -43,7 +43,7 @@ export const UserRegistration = async (req: Request, res: Response) => {
         verificationCodeExpiresAt
       });
 
-      const verificationLink = `http://18.221.152.21:5000/auth/verify?code=${verificationCode}`;
+      const verificationLink = `http://18.221.152.21:5000/auth/verify?id=${newUser.roleId}&code=${verificationCode}`;
 
       const subject = 'Verification Code';
       const text = `Your verification code is: ${verificationCode}   and verification Link is  ${verificationLink}`;

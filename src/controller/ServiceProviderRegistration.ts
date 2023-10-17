@@ -41,7 +41,7 @@ export const serviceProviderRegistration = async (req: Request, res: Response) =
         verificationCode,
       });
 
-      const verificationLink = `http://localhost:5000/auth/verify?code=${verificationCode}`;
+      const verificationLink = `http://18.221.152.21:5000/auth/verify?id=${newServiceProvider.roleId}&code=${verificationCode}`;
 
       const subject = 'Verification Code';
       const text = `Your verification code is: ${verificationCode} and verification Link is  ${verificationLink}`;

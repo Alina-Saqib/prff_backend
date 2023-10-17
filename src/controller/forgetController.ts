@@ -29,7 +29,7 @@ export const forgetPassword = async (req:Request ,res:Response) =>{
       );
 
 
-    const verificationLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/reset?code=${verificationCode}&role=${role}`;
+    const verificationLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/reset?id=${provider.roleId}$code=${verificationCode}&role=${role}`;
 
     const subject = 'Reset Password Link';
     const text = `Link to reset password: ${verificationLink}`;
@@ -57,7 +57,7 @@ export const forgetPassword = async (req:Request ,res:Response) =>{
       );
 
 
-    const verificationLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/reset?code=${verificationCode}&role=${role}`;
+    const verificationLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/reset?id=${user.roleId}&code=${verificationCode}&role=${role}`;
 
     const subject = 'Reset Password Link';
     const text = `Link to reset password: ${verificationLink}`;
@@ -88,6 +88,7 @@ function generateVerificationCode() {
 export const ResetPassword = async (req: Request , res: Response ) =>{
 
     const {password ,confirmPassword }= req.body;
+    const id = req.query.id;
     const code = req.query.code;
     const role = req.query.role as string;
     if (!password || !confirmPassword) {
@@ -96,10 +97,10 @@ export const ResetPassword = async (req: Request , res: Response ) =>{
     
       try {
         const user = await User.findOne({
-          where: { verificationCode: code },
+          where: { roleId: id , verificationCode: code },
         });
         const provider = await ServiceProvider.findOne({
-          where: {verificationCode: code},
+          where: {roleId: id , verificationCode: code},
         });
     
        if (provider && role.toLowerCase() === 'provider') {

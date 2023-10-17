@@ -225,13 +225,14 @@ function generateVerificationCode() {
 export const verificationLink = async (req: Request , res: Response) =>{
 
   const code = req.query.code;
+  const id = req.query.id;
 
   try {
     const user = await User.findOne({
-      where: { verificationCode: code, verify: false },
+      where: { roleId: id, verificationCode: code, verify: false },
     });
     const provider = await ServiceProvider.findOne({
-      where: {verificationCode: code, verify: false },
+      where: { roleId: id, verificationCode: code, verify: false },
     });
 
     if (provider && user) {
