@@ -2,6 +2,7 @@ import authenticate from '../middleware/authenticateUser';
 import express, {Request,Response, NextFunction } from 'express';
 const router = express.Router();
 import { serviceRequestController ,acceptRequest,serviceFound, serviceRerequestController, cancelRequestController, autoMessages, getServiceRequest, serviceRequestOfProviders, ignoreRequest} from '../controller/ServiceRequestController';
+import { getCategory } from '../controller/CategoryController';
 router.get('/auto-messages' , autoMessages)
 router.use(authenticate);
 
@@ -22,5 +23,7 @@ router.get('/get-request' , getServiceRequest)
 router.get('/provider-request' , serviceRequestOfProviders)
 
 router.post('/cancel-request' , cancelRequestController)
+
+router.get('/category', getCategory)
 
 export default router;

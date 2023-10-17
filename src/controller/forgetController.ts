@@ -2,16 +2,19 @@ import { Request,Response } from "express";
 import User from "../model/UserSchema";
 import ServiceProvider from "../model/ServiceProviderSchema";
 import sendEmail from "../utility/nodemailer";
+import bcrypt from 'bcryptjs';
 export const forgetPassword = async (req:Request ,res:Response) =>{
 
    const { email, role} = req.body;
 
    try
 
-  { const user = await User.findOne({where:{email}})
-   const provider = await ServiceProvider.findOne({where:{email}})
-
-   if(provider && role.toLowerCase === 'provider') {
+  { const provider = await ServiceProvider.findOne({ where: { email } });
+  
+  
+  const user = await User.findOne({ where: { email } });
+   if(provider && role.toLowerCase() === 'provider') {
+    console.log('here')
     const verificationCode = generateVerificationCode();
     const verificationCodeExpiresAt = new Date();
     verificationCodeExpiresAt.setDate(verificationCodeExpiresAt.getDate() + 1); 
@@ -26,7 +29,7 @@ export const forgetPassword = async (req:Request ,res:Response) =>{
       );
 
 
-    const verificationLink = `http://localhost:5000/auth/verify?code=${verificationCode}`;
+    const verificationLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/reset?code=${verificationCode}&role=${role}`;
 
     const subject = 'Reset Password Link';
     const text = `Link to reset password: ${verificationLink}`;
@@ -38,7 +41,7 @@ export const forgetPassword = async (req:Request ,res:Response) =>{
      
 
    }
-   else if(user && role.toLowerCase === 'user'){
+   else if(user && role.toLowerCase() === 'user'){
 
     const verificationCode = generateVerificationCode();
     const verificationCodeExpiresAt = new Date();
@@ -54,7 +57,7 @@ export const forgetPassword = async (req:Request ,res:Response) =>{
       );
 
 
-    const verificationLink = `http://localhost:5000/auth/verify?code=${verificationCode}`;
+    const verificationLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/reset?code=${verificationCode}&role=${role}`;
 
     const subject = 'Reset Password Link';
     const text = `Link to reset password: ${verificationLink}`;
@@ -86,6 +89,7 @@ export const ResetPassword = async (req: Request , res: Response ) =>{
 
     const {password ,confirmPassword }= req.body;
     const code = req.query.code;
+    const role = req.query.role as string;
     if (!password || !confirmPassword) {
         return res.status(422).json({ error: `please enter all field properly` });
       }
@@ -98,37 +102,39 @@ export const ResetPassword = async (req: Request , res: Response ) =>{
           where: {verificationCode: code},
         });
     
-        if (provider && user) {
-          if (isVerificationCodeExpired(user.verificationCodeExpiresAt)) {
-            return res.status(401).json({ message: 'Verification code has expired' });
-          }
-    
-          provider.verify = true;
-          user.verify = true;
-          await provider.save();
-          await user.save();
-          res.json({ message: 'Verification successful' });
-        } else if (provider) {
+       if (provider && role.toLowerCase() === 'provider') {
           if (isVerificationCodeExpired(provider.verificationCodeExpiresAt)) {
-            return res.status(401).json({ message: 'Verification code has expired' });
+            return res.status(401).json({ message: 'Link has expired' });
           }
-    
-          provider.verify = true;
+         else if(password === confirmPassword){
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(password, salt);
+          provider.password = hashedPassword
           await provider.save();
-          res.json({ message: 'Provider verification successful' });
-        } else if (user) {
+          res.json({ message: 'Provider password updated' });}else{
+
+            res.json({ message: 'Password and confirmPassword doesnot match' });
+          }
+        } else if (user && role.toLowerCase() === 'user') {
           if (isVerificationCodeExpired(user.verificationCodeExpiresAt)) {
-            return res.status(401).json({ message: 'Verification code has expired' });
+            return res.status(401).json({ message: 'Link has expired' });
           }
     
-          user.verify = true;
+          else if(password === confirmPassword){
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(password, salt);
+          user.password = hashedPassword
           await user.save();
-          res.json({ message: 'User verification successful' });
+          res.json({ message: 'User password updated' });}
+          else{
+
+            res.json({ message: 'Password and confirmPassword doesnot match' });
+          }
         } else {
-          return res.status(401).json({ message: 'Invalid verification code' });
+          return res.status(401).json({ message: 'Invalid Link' });
         }
       } catch (error) {
-        res.status(500).json({ error: 'Error verifying user' });
+        res.status(500).json({ error: 'Error Updating Password' });
       }
  
 

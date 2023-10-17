@@ -3,6 +3,7 @@ import { UserRegistration } from '../controller/UserRegistration';
 import { loginController, ResendVerificationEmail, verificationLink, VerifyUser } from '../controller/LoginController';
 import { check } from 'express-validator';
 import express from 'express';
+import { forgetPassword, ResetPassword } from '../controller/forgetController';
 const router = express.Router();
 
 
@@ -52,4 +53,6 @@ router.post(
 router.post('/resend-verification-email', ResendVerificationEmail);
 
 router.get('/verify', verificationLink);
+router.post('/forget-password' ,forgetPassword)
+router.get('/password-reset' ,ResetPassword)
 export default router;
