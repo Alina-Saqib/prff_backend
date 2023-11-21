@@ -29,7 +29,7 @@ export const forgetPassword = async (req:Request ,res:Response) =>{
       );
 
 
-    const verificationLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/reset?id=${provider.roleId}$code=${verificationCode}&role=${role}`;
+    const verificationLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/reset?id=${provider.roleId}&code=${verificationCode}&role=${role}`;
 
     const subject = 'Reset Password Link';
     const text = `Link to reset password: ${verificationLink}`;
@@ -48,7 +48,7 @@ export const forgetPassword = async (req:Request ,res:Response) =>{
     verificationCodeExpiresAt.setDate(verificationCodeExpiresAt.getDate() + 1); 
 
     
-    await ServiceProvider.update(
+    await User.update(
         {
           verificationCode,
           verificationCodeExpiresAt,
@@ -112,11 +112,14 @@ export const ResetPassword = async (req: Request , res: Response ) =>{
             const hashedPassword = await bcrypt.hash(password, salt);
           provider.password = hashedPassword
           await provider.save();
-          res.json({ message: 'Provider password updated' });}else{
+          res.status(200).json({ message: 'Provider password updated' });}else{
 
             res.json({ message: 'Password and confirmPassword doesnot match' });
           }
-        } else if (user && role.toLowerCase() === 'user') {
+        } 
+        
+        
+    else if (user && role.toLowerCase() === 'user') {
           if (isVerificationCodeExpired(user.verificationCodeExpiresAt)) {
             return res.status(401).json({ message: 'Link has expired' });
           }
@@ -125,8 +128,9 @@ export const ResetPassword = async (req: Request , res: Response ) =>{
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(password, salt);
           user.password = hashedPassword
+          console.log(password);
           await user.save();
-          res.json({ message: 'User password updated' });}
+          res.status(200).json({ message: 'User password updated' });}
           else{
 
             res.json({ message: 'Password and confirmPassword doesnot match' });

@@ -6,6 +6,8 @@ class Chat extends Model {
   public user1!: string;
   public user2!: string;
   public messages?: Messages[];
+  public isBlocked?: Boolean;
+  public BlockedBy?: string | null;
 }
 
 export interface Messages {
@@ -21,6 +23,10 @@ Chat.init(
     messages: {
       type: DataTypes.JSON ,
     },
+    isBlocked: DataTypes.BOOLEAN,
+    BlockedBy: DataTypes.STRING,
+     
+    
   },
   {
     sequelize, 

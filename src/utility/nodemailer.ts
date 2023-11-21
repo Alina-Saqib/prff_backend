@@ -7,16 +7,19 @@ const sendEmail = async (email: string, subject: string, text: string) => {
       service: 'Gmail',
       secure: true,
       auth: {
-        user: 'verify.pruuf@gmail.com',
-        pass: 'nmatvrxsyqoklkdv',
+        // user: 'verify.pruuf@gmail.com',
+        // pass: 'nmatvrxsyqoklkdv',
+        user:'pruuf.verify@gmail.com',
+        pass:'oodsvutevhfelzlf'
       },
     });
 
     await transporter.sendMail({
-      from: 'verify.pruuf@gmail.com',
+      // from: 'verify.pruuf@gmail.com',
+      from:'pruuf.verify@gmail.com',
       to: email,
       subject: subject,
-      text: text,
+      html: text,
     });
     console.log("Email sent successfully");
   } catch (error) {

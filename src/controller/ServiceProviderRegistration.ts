@@ -3,6 +3,8 @@ import { validationResult } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import ServiceProvider from '../model/ServiceProviderSchema'; 
 import sendEmail from '../utility/nodemailer';
+import User from '../model/UserSchema';
+import QuickResponse from '../model/ResponsesSchema';
 
 export const serviceProviderRegistration = async (req: Request, res: Response) => {
   const errors = validationResult(req);
@@ -15,7 +17,9 @@ export const serviceProviderRegistration = async (req: Request, res: Response) =
 
  
   const existingServiceProvider = await ServiceProvider.findOne({ where: { email } });
+  const user = await User.findOne({ where: { email } });
 
+  
   if (existingServiceProvider) {
     return res.status(400).json({ message: 'Email already exists' });
   }
@@ -27,9 +31,13 @@ export const serviceProviderRegistration = async (req: Request, res: Response) =
     try {
 
       const verificationCode = generateVerificationCode();
+let newServiceProvider;
+      if(!user)
      
-      // Create a new service provider using the Sequelize ServiceProvider model
-      const newServiceProvider = await ServiceProvider.create({
+   {   
+
+    console.log("user is not")
+      newServiceProvider = await ServiceProvider.create({
         business,
         email,
         category,
@@ -41,11 +49,70 @@ export const serviceProviderRegistration = async (req: Request, res: Response) =
         verificationCode,
       });
 
-      const verificationLink = `http://18.221.152.21:5000/auth/verify?id=${newServiceProvider.roleId}&code=${verificationCode}`;
+      
+      const newUser = await User.create({
+        email,
+        category,
+        phone,
+        zipCode,
+        password:hashedPassword,
+        verify:false,
+        verificationCode
+      })
+      const userId = newUser.roleId;
+      const userPredefinedResponses = [
+        { message: 'I am Looking for someone to do some work in _____ as soon as possible when you are free to give me estimate.' },
+    
+     
+      ];
+  
+     try {
+          for (const response of  userPredefinedResponses ) {
+            await QuickResponse.create({ userId, message: response.message });
+          }
+        } catch (error) {
+          console.error('Error adding predefined responses to user:', error);
+          throw error;
+        }
+} else{
 
+        console.log("user is present")
+       newServiceProvider = await ServiceProvider.create({
+          business,
+          email,
+          category,
+          phone,
+          service,
+          zipCode,
+          password: hashedPassword,
+          verify: false,
+          verificationCode,
+        });
+
+
+
+      }
+
+      // const verificationLink = `http://18.221.152.21:5000/auth/verify?id=${newServiceProvider.roleId}&code=${verificationCode}`;
+      // and verification Link is  ${verificationLink}
       const subject = 'Verification Code';
-      const text = `Your verification code is: ${verificationCode} and verification Link is  ${verificationLink}`;
+      const text = `Your verification code is: ${verificationCode}`;
       sendEmail(email, subject, text);
+      const userId = newServiceProvider.roleId;
+      const providerPredefinedResponses = [
+        { message: 'I understand you are looking for a _____ for some work to be done.' },
+        
+      ];
+  
+     try {
+          for (const response of  providerPredefinedResponses ) {
+            await QuickResponse.create({ userId, message: response.message });
+          }
+        } catch (error) {
+          console.error('Error adding predefined responses to user:', error);
+          throw error;
+        }
+
 
       res.status(201).json({ message: 'Service provider registered successfully. Email is send for verification.' });
     } catch (error) {

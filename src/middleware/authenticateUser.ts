@@ -1,6 +1,6 @@
 import jwt, { Secret, JwtPayload } from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
-import serviceProvider from '../model/ServiceProviderSchema';
+import ServiceProvider from '../model/ServiceProviderSchema';
 import User from '../model/UserSchema';
 import dotenv from 'dotenv';
 
@@ -22,7 +22,7 @@ export default async function authenticate(req: CustomRequest, res: Response, ne
     
 
     if (decoded.providerId) {
-      const provider = await serviceProvider.findByPk(decoded.providerId);
+      const provider = await ServiceProvider.findByPk(decoded.providerId);
       if (!provider) {
         return res.status(401).json({ msg: 'Provider not found' });
       }

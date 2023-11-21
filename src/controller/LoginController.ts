@@ -169,10 +169,19 @@ export const ResendVerificationEmail = async (req: Request, res: Response) => {
         { where: { email } }
       );
 
-      const verificationLink = `http://18.221.152.21:5000/auth/verify?code=${verificationCode}`;
-  
+      await User.update(
+        {
+          verificationCode,
+          verificationCodeExpiresAt,
+        },
+        { where: { email } }
+
+      )
+
+      // const verificationLink = `http://18.221.152.21:5000/auth/verify?id=${provider.roleId}&code=${verificationCode}`;
+      // and verification Link is  ${verificationLink}
       const subject = 'Verification Code';
-      const text = `Your verification code is: ${verificationCode}  and verification Link is  ${verificationLink}`;
+      const text = `Your verification code is: ${verificationCode}`;
       sendEmail(email as any, subject, text);
   
       return res.status(200).json({ message: 'New verification code has been sent.' });
@@ -198,10 +207,10 @@ export const ResendVerificationEmail = async (req: Request, res: Response) => {
       { where: { email } }
     );
 
-    const verificationLink = `http://18.221.152.21:5000/auth/verify?code=${verificationCode}`;
-
+    // const verificationLink = `http://18.221.152.21:5000/auth/verify?id=${user.roleId}&code=${verificationCode}`;
+    // and verification Link is  ${verificationLink}
     const subject = 'Verification Code';
-    const text = `Your verification code is: ${verificationCode}   and verification Link is  ${verificationLink}`;
+    const text = `Your verification code is: ${verificationCode}`;
     sendEmail(email as any, subject, text);
 
     return res.status(200).json({ message: 'New verification code has been sent.' });}

@@ -8,6 +8,8 @@ import service from "./routes/service";
 import chat from "./routes/chat";
 import { Server, Socket } from "socket.io";
 import cors from "cors";
+import quickResponses from './routes/quickResponses';
+import blockRoutes from './routes/blockRoutes';
 
 dotenv.config();
 
@@ -45,6 +47,8 @@ app.get("/", (req, res) => {
 app.use("/auth", auth);
 app.use("/service", service);
 app.use("/chat", chat);
+app.use("/quickResponses" ,quickResponses)
+app.use("/api" ,blockRoutes)
 
 const io = new Server(server, {
   pingTimeout: 60000,
@@ -72,3 +76,5 @@ io.on("connection", (socket: Socket) => {
     console.log(`Socket ${socket.id} disconnected`);
   });
 });
+
+export { io };
