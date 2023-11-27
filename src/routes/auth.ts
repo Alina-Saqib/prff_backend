@@ -6,6 +6,7 @@ import express from 'express';
 import { forgetPassword, ResetPassword } from '../controller/forgetController';
 import { DeleteUser, DeletionLinkForUser } from '../controller/DeleteUserController';
 import { DeleteProvider, DeletionLinkForProvider } from '../controller/DeleteProviderController';
+import authenticate from '../middleware/authenticateUser';
 const router = express.Router();
 
 
@@ -57,8 +58,9 @@ router.post('/resend-verification-email', ResendVerificationEmail);
 router.get('/verify', verificationLink);
 router.post('/forget-password' ,forgetPassword)
 router.post('/password-reset' ,ResetPassword)
-router.post('/deletion-request-user', DeleteUser)
-router.post('/deletion-request-provider', DeleteProvider)
+
+router.post('/deletion-request-user',authenticate, DeleteUser)
+router.post('/deletion-request-provider',authenticate, DeleteProvider)
 router.get('/delete-provider/:email', DeletionLinkForProvider)
 router.get('/delete-user/:id', DeletionLinkForUser)
 export default router;

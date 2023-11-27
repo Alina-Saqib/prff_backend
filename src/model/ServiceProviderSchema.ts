@@ -78,8 +78,7 @@ ServiceProvider.init(
 // ServiceProvider.hasMany(ServiceRequest, {
 //   foreignKey: 'serviceProviderDetailsId', 
 //   as: 'serviceRequests',
-// });
-  
+// });  
   export default ServiceProvider;
   
   

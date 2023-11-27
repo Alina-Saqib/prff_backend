@@ -9,8 +9,11 @@ export const DeleteProvider = async (req: Request , res: Response)=>{
     const email = req.query.email;
     try
 
-   { const provider = await ServiceProvider.findOne({where:{email: email}});
-   const user = await User.findOne({where:{email: email}});
+   { 
+
+   const provider = await ServiceProvider.findOne({where:{email: email}});
+console.log(provider) 
+      const user = await User.findOne({where:{email: email}});
 
     if(!provider){
         res.status(404).json({message: "Provider not Found"});
@@ -27,7 +30,7 @@ export const DeleteProvider = async (req: Request , res: Response)=>{
     user!.verificationCodeExpiresAt = verificationCodeExpiresAt
     await user?.save();
 
-    const verificationLinkForDeletion = `http://localhost:5000/auth/delete-provider/${provider?.email}?code=${VerificationCode}`;
+    const verificationLinkForDeletion = `http://18.221.152.21:5000/auth/delete-provider/${provider?.email}?code=${VerificationCode}`;
     
     // await sendEmail(provider!.email ,"Confirmation of Deletion",
     // `Dear Service Provider, \n\nYou have requested the deletion of your account. Confirm deletion by clicking on the following link:\n\n${verificationLinkForDeletion}`)
@@ -82,9 +85,9 @@ try
     }
 
     await provider?.destroy();
-    await user?.destroy();
+   await user?.destroy();
 
-    res.status(200).json({message:"Provider Deleted Successfully"})
+    res.status(200).json({message:"Provider and User Deleted Successfully"})
 }catch(err){
     console.log(err);
     res.status(500).json({message:"Internal Server Error"})

@@ -23,7 +23,7 @@ export const DeleteUser = async (req: Request , res: Response)=>{
     user!.verificationCodeExpiresAt = verificationCodeExpiresAt
     await user?.save();
 
-    const verificationLinkForDeletion = `http://localhost:5000/auth/delete-user/${user?.roleId}?code=${VerificationCode}`;
+    const verificationLinkForDeletion = `http://18.221.152.21:5000/auth/delete-user/${user?.roleId}?code=${VerificationCode}`;
     
     // await sendEmail(user!.email ,"Confirmation of Deletion",
     // `Dear Service Provider, \n\nYou have requested the deletion of your account. Confirm deletion by clicking on the following link:\n\n${verificationLinkForDeletion}`)
@@ -67,11 +67,11 @@ try
 
     }
 
-    const serviceRequests = await ServiceRequest.findAll({ where: { userId: user?.roleId } });
-    for (const request of serviceRequests) {
-        request.status = 'archived'; 
-        await request.save();
-      }
+    //const serviceRequests = await ServiceRequest.findAll({ where: { userId: user?.roleId } });
+    //for (const request of serviceRequests) {
+      //  request.status = 'archived'; 
+       // await request.save();
+      //}
 
     await user?.destroy();
 

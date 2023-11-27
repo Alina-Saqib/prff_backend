@@ -5,6 +5,7 @@ import ServiceProvider from '../model/ServiceProviderSchema';
 import sendEmail from '../utility/nodemailer';
 import User from '../model/UserSchema';
 import QuickResponse from '../model/ResponsesSchema';
+import { sendSms } from '../utility/phoneSms';
 
 export const serviceProviderRegistration = async (req: Request, res: Response) => {
   const errors = validationResult(req);
@@ -51,6 +52,7 @@ let newServiceProvider;
 
       
       const newUser = await User.create({
+        name: business,
         email,
         category,
         phone,
@@ -98,6 +100,7 @@ let newServiceProvider;
       const subject = 'Verification Code';
       const text = `Your verification code is: ${verificationCode}`;
       sendEmail(email, subject, text);
+      sendSms(phone,`${text}`)
       const userId = newServiceProvider.roleId;
       const providerPredefinedResponses = [
         { message: 'I understand you are looking for a _____ for some work to be done.' },

@@ -5,10 +5,10 @@ import ServiceRequest from '../model/ServiceRequestSchema';
 import AutomatedMessages from '../model/automatedMessageSchema';
 import Chat from '../model/ChatSchema';
 import IgnoreMessages from '../model/ignoreMessageSchema';
-import { sendRequestEmail } from '../utility/sendRequestEmail';
 import sendEmail from '../utility/nodemailer';
 import { io } from '../index';
 import User from '../model/UserSchema';
+import { sendSms } from '../utility/phoneSms';
 
 export const serviceRequestController = async (req: Request, res: Response) => {
   const { category, service, description, timeframe, budget, searchRadius } = req.body;
@@ -34,24 +34,30 @@ export const serviceRequestController = async (req: Request, res: Response) => {
     
 
     const filter = {
-      [Op.or]: [
-        category
-          ? {
-              category: {
-                [Op.like]: `%${category.split(' ')[0]}%`,
-              },
-            }
-          : {},
-        service
-          ? {
-              service: {
-                [Op.like]: `%${service.split(' ')[0]}%`,
-              },
-            }
-          : {},
+      [Op.and]: [
+        {
+          [Op.or]: [
+            category
+              ? {
+                  category: {
+                    [Op.like]: `%${category.split(' ')[0]}%`,
+                  },
+                }
+              : {},
+            service
+              ? {
+                  service: {
+                    [Op.like]: `%${service.split(' ')[0]}%`,
+                  },
+                }
+              : {},
+          ],
+        },
+        {
+          verify: true, 
+        },
       ],
     };
-    
     const providers = await ServiceProvider.findAll({ where: filter });
     
 
@@ -80,7 +86,7 @@ export const serviceRequestController = async (req: Request, res: Response) => {
 
     }
 
-    const ServiceRequestLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/service-request-available`
+ const ServiceRequestLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/service-request-available`
 
     for (const providerId of topProviderIds) {
       const provider = await ServiceProvider.findByPk(providerId);
@@ -92,9 +98,14 @@ export const serviceRequestController = async (req: Request, res: Response) => {
         <p><strong>BY PRESSING THE LINK</strong></p>
         <p><a href=${ServiceRequestLink}>Check Available Request</a></p>
         <p>Do Not reply to this email here</p>` );
+
+        await sendSms(provider.phone, "You have received a new service request. Check details: " + ServiceRequestLink);
       }}
 
-    res.status(200).json({ serviceRequest:ServiceRequestResponse, message:"Email notification is send"});
+
+      
+
+    res.status(200).json({ serviceRequest:ServiceRequestResponse,message: "Email has been sent to the providers"});
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });
@@ -200,7 +211,8 @@ export const acceptRequest = async (req: Request, res: Response) => {
         user2: serviceProviderId,
       },
     });
-    let chatId;
+let chatId;
+
     if (chat) {
       const newMessage = {
         sender: serviceProviderId,
@@ -213,7 +225,7 @@ export const acceptRequest = async (req: Request, res: Response) => {
       messageArray.push(newMessage);
       chat.messages= messageArray;
       await chat.save();
-      chatId = chat.id;
+chatId = chat.id;
     } else {
       
       const newChat = await Chat.create({
@@ -227,30 +239,27 @@ export const acceptRequest = async (req: Request, res: Response) => {
           },
         ],
       });
-      chatId = newChat .id;
+chatId = newChat .id;
     }
-   const provider = await ServiceProvider.findOne({where: {roleId: serviceProviderId}})
+     const provider = await ServiceProvider.findOne({where: {roleId: serviceProviderId}})
    if(!provider){
+
     res.status(400).json({message:"Provider not found"});
    }
-   const user: any = await User.findOne({where: {roleId: serviceRequest.userId}})
+   
+  const user: any = await User.findOne({where: {roleId: serviceRequest.userId}})
    if(!user){
-    
+
     res.status(400).json({message:"User not found"});
    }
+ 
    const chatLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/chats?chatId=${chatId}`;
-  
-  try{ await sendEmail(user.email , "Your service request has been accepted",
+  await sendEmail(user.email , "Service Request Accepted",
   `<p>Dear Customer,</p>
    <p>Your Service is accepted by the Service Provider ${provider!.business}. Please Visit Website to discuss Details.</p>
-   <p><strong>BY PRESSING THE LINK</strong></p>
-   <p><a href=${chatLink}>Open Chat</a></p>
    <p>Do Not reply to this email here</p>`)
-  }catch (emailError) {
-    console.error('Error sending email:', emailError);
-    // Handle the error (e.g., log it or return an error response)
-    return res.status(500).json({ error: 'Error sending email' });
-  }
+   await sendSms(user.phone, "Your Service Request is Accepted. Check details: " + chatLink);
+ 
 
     return res.status(200).json({ message: 'Request accepted.' });
   } catch (error) {
@@ -332,14 +341,12 @@ export const serviceFound = async (req: Request, res: Response) => {
           serviceProviderDetailsId: serviceProviderId,
         })
       } 
-  
       const acceptedProvider = await ServiceProvider.findByPk(serviceProviderId as any)
       if(!acceptedProvider){
         res.status(400).json({ error: 'Accepted Provider Id not found' });
 
       }
-
-      const chatprovider = await Chat.findOne({
+       const chatprovider = await Chat.findOne({
         where: {
           [Op.or]: [
             { user1: serviceProviderId, user2: serviceRequest.userId },
@@ -369,12 +376,11 @@ export const serviceFound = async (req: Request, res: Response) => {
         <p>Your Service is accepted by the User. Please Visit Website to discuss Details.</p>
         <p><strong>BY PRESSING THE LINK</strong></p>
         <p><a href=${chatLink}>Open Chat</a></p>
-        <p>Do Not reply to this email here</p>` );
-    
+         <p>Do Not reply to this email here</p>` );
+      await sendSms(acceptedProvider!.phone, "Your Service Accepted by the user. Check details: " + chatLink);
   
        const stringaccpetedProviderIds = JSON.stringify(serviceRequest.acceptedProviderIds as any);
-       const acceptedProvidersIds = JSON.parse(stringaccpetedProviderIds);   
-       console.log(acceptedProvidersIds) 
+       const acceptedProvidersIds = JSON.parse(stringaccpetedProviderIds);    
       const acceptProviderIds = acceptedProvidersIds.filter(
           (providerId: any) => providerId != serviceProviderId
         );
@@ -401,8 +407,7 @@ export const serviceFound = async (req: Request, res: Response) => {
               arrayChatExist.push(newMessage as any);
               chat.messages = arrayChatExist;
               await chat.save();
-
-              io.emit('message', newMessage);
+               io.emit('message', newMessage);
               
           }
         }
@@ -530,7 +535,7 @@ export const cancelRequestController = async (req: Request, res: Response) => {
     await request.update({ status: 'cancelled' });
 
     if (!request.acceptedProviderIds || request.acceptedProviderIds.length === 0) {
-      return res.status(400).json({ error: 'No provider accepted request it is cancelled' });
+      return res.status(201).json({ error: 'No provider accepted request it is cancelled' });
     }
 
     const stringacceptedProvider = JSON.stringify(request.acceptedProviderIds as any);
@@ -689,7 +694,7 @@ export const UsersRequests = async (req: Request, res: Response) => {
     };
 
 
-    export const emailNotificationToReRequest = async (req: Request, res: Response) => {
+ export const emailNotificationToReRequest = async (req: Request, res: Response) => {
       try {
         const { id: requestId } = req.body;
     
@@ -707,26 +712,43 @@ export const UsersRequests = async (req: Request, res: Response) => {
           return res.status(400).json({ error: 'Request is already cancelled or found' });
         }
     
-        const serviceRequestUser = await User.findOne({ where: { id: serviceRequest.userId }});
+        const serviceRequestUser = await User.findOne({ where: { roleId: serviceRequest.userId }});
     
         if (!serviceRequestUser) {
           return res.status(404).json({ error: 'Service request user not found' });
         }
-    
-        const ServiceRequestLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/service-request-available?${requestId}`;
+    //http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/re-request?requestId=${requestId}
+        const ServiceRequestLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/re-request?requestId=${requestId}`;
     
         const emailContent = `
-          <p>Dear Customer,</p>
-          <p>You have received recommendations from service providers for your request. Have you found a provider?</p>
-          <p>If you have found a provider and chosen one, please click "Yes" to confirm your selection on our website.</p>
-          <p>If you haven't found a provider yet or haven't made a choice, please click "No" to continue exploring more options.</p>
-          <p>If you click "No," we will suggest the next 5 providers for your consideration.</p>
-          <p><a href="">Yes</a> | <a href="${ServiceRequestLink}?response=no">No</a></p>
-          <p>Do Not reply to this email here</p>
-          <p>We are not the service provider</p>
-        `;
+  <div style="color: black; white-space: nowrap;">
+    <p>Dear Customer,</p>
+    <p>This email For the Service Request having category "${serviceRequest.category}" and service "${serviceRequest.service}" with description "${serviceRequest.description}"</p>
+    <p style="color: black;">If you have found a provider and chosen one, please click "Yes" to confirm your selection on our website.</p>
+    <p style="color: black;">If you haven't found a provider yet or haven't made a choice, please click "Keep Searching" to continue exploring more options.</p>
+    <p><a href="${ServiceRequestLink}?response=Yes" style="display: inline-block; padding: 10px 20px; background-color: green; color: white; text-decoration: none; font-size: 16px;">I have found Service Provider</a> 
+    <a href="${ServiceRequestLink}?response=No" style="display: inline-block; padding: 10px 20px; background-color: blue; color: white; text-decoration: none; font-size: 16px;">I have not found Service Provider Keep Searching</a></p>
+    <p  style="color: black;">Do Not reply to this email here</p>
+    <p  style="color: black;">We are not the service provider</p>
+
+</div>
+
+`;
+const smsContent = `
+Service Request:
+Category: ${serviceRequest.category}
+Service: ${serviceRequest.service}
+Description: ${serviceRequest.description}
+
+if 'Found Provider' click ${ServiceRequestLink}?response=Yes
+if 'Not Found Provider' click ${ServiceRequestLink}?response=No
+
+Do not reply to this sms
+`;
     
         await sendEmail(serviceRequestUser.email, 'Provider Found Or Not', emailContent);
+        await sendSms(serviceRequestUser.phone, smsContent);
+        
     
         res.status(200).json({ message: 'Email sent successfully' });
       } catch (error) {

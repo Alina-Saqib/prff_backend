@@ -24,9 +24,10 @@ Chat.init(
       type: DataTypes.JSON ,
     },
     isBlocked: DataTypes.BOOLEAN,
-    BlockedBy: DataTypes.STRING,
-     
-    
+    BlockedBy: {
+type: DataTypes.STRING,
+allowNull: true,
+}
   },
   {
     sequelize, 

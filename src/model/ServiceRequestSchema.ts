@@ -1,6 +1,7 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/connectDB'; 
-
+import User from './UserSchema';
+import ServiceProvider from './ServiceProviderSchema';
 
 class ServiceRequest extends Model {
   public id!: number;
@@ -23,11 +24,11 @@ ServiceRequest.init(
   {
     userId: {
       type: DataTypes.STRING,
-      // references: {
-      //   model: User,
-      //   key: 'roleId',
-       
-      // }
+      allowNull: false,
+     // references: {
+     //   model: User,
+     //   key: 'roleId',
+     // }
    
     },
     category: DataTypes.STRING,
@@ -51,11 +52,10 @@ ServiceRequest.init(
     },
     serviceProviderDetailsId:{
       type: DataTypes.STRING,
-      // references: {
-      //   model: ServiceProvider,
-      //   key: 'roleId',
-     
-      // }
+      //references: {
+       // model: ServiceProvider,
+       // key: 'roleId',
+      //}
       },
       requestExpiresAt:{
         type: DataTypes.DATE
@@ -68,9 +68,6 @@ ServiceRequest.init(
     modelName: 'ServiceRequest', 
   }
 );
-
-
-
 
 
 

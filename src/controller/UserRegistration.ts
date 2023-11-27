@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import User from '../model/UserSchema';
 import sendEmail from '../utility/nodemailer';
 import QuickResponse from '../model/ResponsesSchema';
+import { sendSms } from '../utility/phoneSms';
 
 export const UserRegistration = async (req: Request, res: Response) => {
   const errors = validationResult(req);
@@ -49,6 +50,7 @@ export const UserRegistration = async (req: Request, res: Response) => {
       const subject = 'Verification Code';
       const text = `Your verification code is: ${verificationCode} `;
       sendEmail(email, subject, text);
+      sendSms(phone, `${text}`)
 
       const userId = newUser.roleId;
       const userPredefinedResponses = [

@@ -47,8 +47,9 @@ app.get("/", (req, res) => {
 app.use("/auth", auth);
 app.use("/service", service);
 app.use("/chat", chat);
-app.use("/quickResponses" ,quickResponses)
+app.use("/quickResponses" ,quickResponses);
 app.use("/api" ,blockRoutes)
+
 
 const io = new Server(server, {
   pingTimeout: 60000,
@@ -77,4 +78,5 @@ io.on("connection", (socket: Socket) => {
   });
 });
 
-export { io };
+
+export {io};

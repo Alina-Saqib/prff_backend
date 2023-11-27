@@ -67,7 +67,7 @@ export const forgetPassword = async (req:Request ,res:Response) =>{
 
    }else{
 
-    return res.status(200).json({ message: 'Email or Role Not Found.' });
+    return res.status(401).json({ message: 'Email or Role Not Found.' });
 
    }}catch(err) {
     console.log(err)
@@ -91,6 +91,7 @@ export const ResetPassword = async (req: Request , res: Response ) =>{
     const id = req.query.id;
     const code = req.query.code;
     const role = req.query.role as string;
+console.log(id);
     if (!password || !confirmPassword) {
         return res.status(422).json({ error: `please enter all field properly` });
       }
@@ -112,14 +113,11 @@ export const ResetPassword = async (req: Request , res: Response ) =>{
             const hashedPassword = await bcrypt.hash(password, salt);
           provider.password = hashedPassword
           await provider.save();
-          res.status(200).json({ message: 'Provider password updated' });}else{
+          res.json({ message: 'Provider password updated' });}else{
 
             res.json({ message: 'Password and confirmPassword doesnot match' });
           }
-        } 
-        
-        
-    else if (user && role.toLowerCase() === 'user') {
+        } else if (user && role.toLowerCase() === 'user') {
           if (isVerificationCodeExpired(user.verificationCodeExpiresAt)) {
             return res.status(401).json({ message: 'Link has expired' });
           }
@@ -128,9 +126,8 @@ export const ResetPassword = async (req: Request , res: Response ) =>{
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(password, salt);
           user.password = hashedPassword
-          console.log(password);
           await user.save();
-          res.status(200).json({ message: 'User password updated' });}
+          res.json({ message: 'User password updated' });}
           else{
 
             res.json({ message: 'Password and confirmPassword doesnot match' });
@@ -139,6 +136,7 @@ export const ResetPassword = async (req: Request , res: Response ) =>{
           return res.status(401).json({ message: 'Invalid Link' });
         }
       } catch (error) {
+        console.log(error);
         res.status(500).json({ error: 'Error Updating Password' });
       }
  
