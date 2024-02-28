@@ -10,6 +10,13 @@ import { Server, Socket } from "socket.io";
 import cors from "cors";
 import quickResponses from './routes/quickResponses';
 import blockRoutes from './routes/blockRoutes';
+import contactRoutes from "./routes/contactRoutes";
+import draftRoutes from "./routes/draftRoutes";
+import templateRoutes from "./routes/templateRoutes";
+import { RecurringEmails, scheduleEmails } from "./AdminController/emailController";
+import phoneRoutes from "./routes/phoneRoutes";
+import { RecurringSms, scheduleSms } from "./AdminController/phoneSmsController";
+import admin from './routes/admin';
 
 dotenv.config();
 
@@ -18,6 +25,11 @@ const PORT = process.env.PORT;
 
 app.use(cors());
 app.use(bodyParser.json({ limit: "10mb" }));
+
+scheduleEmails();
+RecurringEmails();
+scheduleSms();
+RecurringSms();
 
 const server = http.createServer(app);
 
@@ -44,11 +56,25 @@ app.get("/", (req, res) => {
   res.send("Api is running");
 });
 
+// const accountSid = 'AC96b2e8433e689e834cc72dde6b9878e8';
+// const authToken = '73754c50c9bbbd479208f289863f7183';
+// const client = require('twilio')(accountSid, authToken);
+
+// client.validationRequests
+//   .create({friendlyName: '923155351832', phoneNumber: '+923155351832'})
+//   .then((validation_request: any) => console.log(validation_request.friendlyName));
+
 app.use("/auth", auth);
 app.use("/service", service);
 app.use("/chat", chat);
 app.use("/quickResponses" ,quickResponses);
-app.use("/api" ,blockRoutes)
+app.use("/api" ,blockRoutes);
+app.use("/contact", contactRoutes);
+app.use("/draft" , draftRoutes);
+app.use("/template" , templateRoutes)
+app.use("/phone", phoneRoutes)
+app.use("/admin",admin)
+
 
 
 const io = new Server(server, {

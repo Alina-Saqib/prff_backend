@@ -29,11 +29,13 @@ export const forgetPassword = async (req:Request ,res:Response) =>{
       );
 
 
-    const verificationLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/reset?id=${provider.roleId}&code=${verificationCode}&role=${role}`;
+   // const verificationLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/reset?id=${provider.roleId}&code=${verificationCode}&role=${role}`;
+   const verificationLink = `https://app.pruuf.pro/reset?id=${provider.roleId}&code=${verificationCode}&role=${role}`;
 
     const subject = 'Reset Password Link';
     const text = `Link to reset password: ${verificationLink}`;
-    sendEmail(email as any, subject, text);
+    const attachments : any=[]
+    sendEmail(email as any, subject, text,attachments);
 
     return res.status(200).json({ message: 'Reset Password Link is send.' });
     
@@ -57,11 +59,12 @@ export const forgetPassword = async (req:Request ,res:Response) =>{
       );
 
 
-    const verificationLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/reset?id=${user.roleId}&code=${verificationCode}&role=${role}`;
+    const verificationLink = `https://app.pruuf.pro/reset?id=${user.roleId}&code=${verificationCode}&role=${role}`;
 
     const subject = 'Reset Password Link';
     const text = `Link to reset password: ${verificationLink}`;
-    sendEmail(email as any, subject, text);
+    const attachments : any=[]
+    sendEmail(email as any, subject, text,attachments);
 
     return res.status(200).json({ message: 'Reset Password Link is send.' });
 

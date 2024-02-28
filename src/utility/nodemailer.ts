@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-const sendEmail = async (email: string, subject: string, text: string) => {
+const sendEmail = async (email: string, subject: string, text: string, attachments: any) => {
   try {
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
@@ -14,13 +14,16 @@ const sendEmail = async (email: string, subject: string, text: string) => {
       },
     });
 
+   
     await transporter.sendMail({
       // from: 'verify.pruuf@gmail.com',
       from:'pruuf.verify@gmail.com',
       to: email,
       subject: subject,
       html: text,
+      attachments: attachments.length > 0 ? attachments : undefined
     });
+
     console.log("Email sent successfully");
   } catch (error) {
     console.log("Email not sent");

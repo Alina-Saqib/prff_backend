@@ -2,6 +2,7 @@ import {Request, Response} from 'express';
 import sendEmail from '../utility/nodemailer';
 import User from '../model/UserSchema';
 import ServiceRequest from '../model/ServiceRequestSchema';
+import ContactSchema from '../model/contactSchema';
 
 export const DeleteUser = async (req: Request , res: Response)=>{
 
@@ -12,7 +13,7 @@ export const DeleteUser = async (req: Request , res: Response)=>{
    { const user = await User.findOne({where:{email: email}});
 
     if(!user){
-        res.status(404).json({message: "User not Found"});
+       return res.status(404).json({message: "User not Found"});
     }
 
     const VerificationCode = generateVerificationCode();
@@ -23,22 +24,23 @@ export const DeleteUser = async (req: Request , res: Response)=>{
     user!.verificationCodeExpiresAt = verificationCodeExpiresAt
     await user?.save();
 
-    const verificationLinkForDeletion = `http://18.221.152.21:5000/auth/delete-user/${user?.roleId}?code=${VerificationCode}`;
+   // const verificationLinkForDeletion = `http://18.221.152.21:5000/auth/delete-user/${user?.roleId}?code=${VerificationCode}`;
+   const verificationLinkForDeletion = `https://api.pruuf.pro/auth/delete-user/${user?.roleId}?code=${VerificationCode}`;
     
     // await sendEmail(user!.email ,"Confirmation of Deletion",
     // `Dear Service Provider, \n\nYou have requested the deletion of your account. Confirm deletion by clicking on the following link:\n\n${verificationLinkForDeletion}`)
-
+    const attachments : any=[]
     await sendEmail(user!.email,"Confirmation of Deletion" , `<p>Dear User,</p>
     <p>You have requested the deletion of your account. Confirm deletion by clicking on the following:</p>
     <p><button><a href=${verificationLinkForDeletion} 
     target="_blank">Confirm Deletion</a></button></p>
     <p>If you did not request this, please ignore this email.</p>`
-    )
+    ,attachments)
 
-    res.status(200).json({message:"Confirmation email sent"})
+    return res.status(200).json({message:"Confirmation email sent"})
 }catch(err){
     console.log(err)
-    res.status(500).json({message: "Internal Server Error"});
+    return res.status(500).json({message: "Internal Server Error"});
 }
 }
 
@@ -58,12 +60,20 @@ try
     }
     })
 
+    const Contactuser = await ContactSchema.findOne({
+        where:{
+            UserRoleId: userId,
+           
+    
+        }
+        })
+
     if(!user){
-        res.status(404).json({message:"User Not Found"});
+        return res.status(404).json({message:"User Not Found"});
     }
 
     if(isVerificationCodeExpired(user?.verificationCodeExpiresAt)) {
-        res.status(401).json({message:"Link has been expired"});
+        return res.status(401).json({message:"Link has been expired"});
 
     }
 
@@ -74,11 +84,12 @@ try
       //}
 
     await user?.destroy();
+    await Contactuser?.destroy();
 
-    res.status(200).json({message:"User Deleted Successfully"})
+    return res.status(200).json({message:"User Deleted Successfully"})
 }catch(err){
     console.log(err);
-    res.status(500).json({message:"Internal Server Error"})
+    return res.status(500).json({message:"Internal Server Error"})
 }
     
 

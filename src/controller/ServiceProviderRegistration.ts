@@ -5,7 +5,8 @@ import ServiceProvider from '../model/ServiceProviderSchema';
 import sendEmail from '../utility/nodemailer';
 import User from '../model/UserSchema';
 import QuickResponse from '../model/ResponsesSchema';
-import { sendSms } from '../utility/phoneSms';
+// import { sendSms } from '../utility/phoneSms';
+import ContactSchema from '../model/contactSchema';
 
 export const serviceProviderRegistration = async (req: Request, res: Response) => {
   const errors = validationResult(req);
@@ -33,6 +34,7 @@ export const serviceProviderRegistration = async (req: Request, res: Response) =
 
       const verificationCode = generateVerificationCode();
 let newServiceProvider;
+let newUser;
       if(!user)
      
    {   
@@ -51,7 +53,7 @@ let newServiceProvider;
       });
 
       
-      const newUser = await User.create({
+      newUser = await User.create({
         name: business,
         email,
         category,
@@ -99,8 +101,9 @@ let newServiceProvider;
       // and verification Link is  ${verificationLink}
       const subject = 'Verification Code';
       const text = `Your verification code is: ${verificationCode}`;
-      sendEmail(email, subject, text);
-      sendSms(phone,`${text}`)
+      const attachments: any=[]
+      sendEmail(email, subject, text,attachments);
+      // sendSms(phone,`${text}`)
       const userId = newServiceProvider.roleId;
       const providerPredefinedResponses = [
         { message: 'I understand you are looking for a _____ for some work to be done.' },
@@ -115,6 +118,27 @@ let newServiceProvider;
           console.error('Error adding predefined responses to user:', error);
           throw error;
         }
+
+       const contactEntryExistence = await ContactSchema.findOne({where:{email: newServiceProvider.email, phone: newServiceProvider.phone}});
+       if(contactEntryExistence){
+        const updatedContactEntry = await ContactSchema.update(
+          { userId: newServiceProvider.roleId,
+            ServiceProviderRoleId:newServiceProvider.roleId,
+            UserRoleId: newUser?.roleId },
+          { where: { email: newServiceProvider.email, phone: newServiceProvider.phone } }
+        );
+
+       }else
+        {  const contactEntry = await ContactSchema.create({
+            phone: newServiceProvider.phone,
+            email: newServiceProvider.email, 
+            userId: newServiceProvider.roleId,
+            ServiceProviderRoleId:newServiceProvider.roleId,
+            UserRoleId: newUser?.roleId
+          });
+  }
+  
+   
 
 
       res.status(201).json({ message: 'Service provider registered successfully. Email is send for verification.' });

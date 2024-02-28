@@ -74,6 +74,34 @@ export const loginController = async (req: Request, res: Response) => {
 
       res.json({ message: 'Login successful as user', userResponse, token });
     } 
+     else if (user && role.toLowerCase() === 'user') {
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ message: 'Incorrect password' });
+      }
+      if (!user.verify) {
+        return res.status(401).json({ message: 'User not verified. Please check your email for verification code.' });
+      }
+
+      const token = jwt.sign({ userId: user.roleId }, process.env.JWT_SECRET as Secret, {
+        expiresIn: '7d',
+      });
+
+      const userResponse ={
+        id: user.roleId,
+        name: user.name,
+        surname: user.surname,
+        email: user.email,
+        gender: user.gender,
+        phone: user.phone,
+        zipCode: user.zipCode
+
+
+      }
+
+      res.json({ message: 'Login successful as user', userResponse, token });
+    } 
+      
       
     else{
     
@@ -178,11 +206,12 @@ export const ResendVerificationEmail = async (req: Request, res: Response) => {
 
       )
 
-      const verificationLink = `http://18.221.152.21:5000/auth/verify?id=${provider.roleId}&code=${verificationCode}`;
+      const verificationLink = `https://api.pruuf.pro/auth/verify?id=${provider.roleId}&code=${verificationCode}`;
   
       const subject = 'Verification Code';
       const text = `Your verification code is: ${verificationCode}`;
-      sendEmail(email as any, subject, text);
+      const attachments : any=[]
+      sendEmail(email as any, subject, text,attachments);
   
       return res.status(200).json({ message: 'New verification code has been sent.' });
 
@@ -207,11 +236,12 @@ export const ResendVerificationEmail = async (req: Request, res: Response) => {
       { where: { email } }
     );
 
-    const verificationLink = `http://18.221.152.21:5000/auth/verify?id=${user.roleId}&code=${verificationCode}`;
+    const verificationLink = `https://api.pruuf.pro/auth/verify?id=${user.roleId}&code=${verificationCode}`;
 
     const subject = 'Verification Code';
     const text = `Your verification code is: ${verificationCode}`;
-    sendEmail(email as any, subject, text);
+    const attachments : any=[]
+    sendEmail(email as any, subject, text,attachments);
 
     return res.status(200).json({ message: 'New verification code has been sent.' });}
 

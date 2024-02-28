@@ -4,7 +4,8 @@ import bcrypt from 'bcryptjs';
 import User from '../model/UserSchema';
 import sendEmail from '../utility/nodemailer';
 import QuickResponse from '../model/ResponsesSchema';
-import { sendSms } from '../utility/phoneSms';
+// import { sendSms } from '../utility/phoneSms';
+import ContactSchema from '../model/contactSchema';
 
 export const UserRegistration = async (req: Request, res: Response) => {
   const errors = validationResult(req);
@@ -49,8 +50,9 @@ export const UserRegistration = async (req: Request, res: Response) => {
       // and verification Link is  ${verificationLink}
       const subject = 'Verification Code';
       const text = `Your verification code is: ${verificationCode} `;
-      sendEmail(email, subject, text);
-      sendSms(phone, `${text}`)
+      const attachments : any=[]
+      sendEmail(email, subject, text, attachments);
+      // sendSms(phone, `${text}`)
 
       const userId = newUser.roleId;
       const userPredefinedResponses = [
@@ -68,7 +70,27 @@ export const UserRegistration = async (req: Request, res: Response) => {
           throw error;
         }
       
+      if(newUser){
+        const contactEntryExistence = await ContactSchema.findOne({where:{email:newUser.email,phone:newUser.phone}});
+        if(contactEntryExistence){
+         const updatedContactEntry = await ContactSchema.update(
+           { userId: newUser.roleId ,
+            UserRoleId: newUser.roleId},
+           { where: {email:newUser.email,phone:newUser.phone} }
+         );
+ 
+        }else
+         {  const contactEntry = await ContactSchema.create({
+             phone: newUser.phone,
+             email: newUser.email, 
+             userId: newUser.roleId,
+             UserRoleId: newUser.roleId
+           });
+   }
+   
 
+
+      }
       
 
       res.status(201).json({ message: 'User registered successfully email is sent to you for verification'});

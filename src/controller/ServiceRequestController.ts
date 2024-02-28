@@ -8,7 +8,9 @@ import IgnoreMessages from '../model/ignoreMessageSchema';
 import sendEmail from '../utility/nodemailer';
 import { io } from '../index';
 import User from '../model/UserSchema';
-import { sendSms } from '../utility/phoneSms';
+import { phoneSms } from '../utility/phoneSms';
+import adminConfig from '../model/adminConfig';
+// import { sendSms } from '../utility/phoneSms';
 
 export const serviceRequestController = async (req: Request, res: Response) => {
   const { category, service, description, timeframe, budget, searchRadius } = req.body;
@@ -28,7 +30,8 @@ export const serviceRequestController = async (req: Request, res: Response) => {
     });
 
     const requestExpiresAt = new Date();
-    requestExpiresAt.setMinutes(requestExpiresAt.getMinutes() + 4); 
+    const adminSetting : any = await adminConfig.findOne()
+    requestExpiresAt.setHours(requestExpiresAt.getHours() + adminSetting?.expiredHours);
 
     await newRequest.update({ requestExpiresAt });
     
@@ -86,20 +89,28 @@ export const serviceRequestController = async (req: Request, res: Response) => {
 
     }
 
- const ServiceRequestLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/service-request-available`
-
+// const ServiceRequestLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/service-request-available`
+const ServiceRequestLink = `https://app.pruuf.pro/service-request-available`
+ const attachments : any=[]
     for (const providerId of topProviderIds) {
       const provider = await ServiceProvider.findByPk(providerId);
+
       if (provider) {
+
+        const isUSNumber = provider.phone.startsWith('+1');
+
+        if (isUSNumber) {
+          await phoneSms("You have received a new service request. Check details: " + ServiceRequestLink, provider.phone);
+        }
         await sendEmail(provider.email, "New Service Request Received" ,
         `<p>Dear Service Provider</p>,
         <p>You have received a new Request from anonymous User.</p> 
         <p> Please Visit Website to see Details.</p>
         <p><strong>BY PRESSING THE LINK</strong></p>
         <p><a href=${ServiceRequestLink}>Check Available Request</a></p>
-        <p>Do Not reply to this email here</p>` );
+        <p>Do Not reply to this email here</p>`, attachments );
 
-        await sendSms(provider.phone, "You have received a new service request. Check details: " + ServiceRequestLink);
+      
       }}
 
 
@@ -252,13 +263,15 @@ chatId = newChat .id;
 
     res.status(400).json({message:"User not found"});
    }
+   
+   const attachments : any=[]
  
    const chatLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/chats?chatId=${chatId}`;
   await sendEmail(user.email , "Service Request Accepted",
   `<p>Dear Customer,</p>
    <p>Your Service is accepted by the Service Provider ${provider!.business}. Please Visit Website to discuss Details.</p>
-   <p>Do Not reply to this email here</p>`)
-   await sendSms(user.phone, "Your Service Request is Accepted. Check details: " + chatLink);
+   <p>Do Not reply to this email here</p>`,attachments)
+   //await sendSms(user.phone, "Your Service Request is Accepted. Check details: " + chatLink);
  
 
     return res.status(200).json({ message: 'Request accepted.' });
@@ -365,19 +378,21 @@ export const serviceFound = async (req: Request, res: Response) => {
           messages: [],
         });
         const chatId = newChat.id;
-        chatLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/chats?chatId=${chatId}`;
+        // chatLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/chats?chatId=${chatId}`;
+        chatLink = `https://app.pruuf.pro/chats?chatId=${chatId}`;
       } else {
         const chatId = chatprovider.id;
-        chatLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/chats?chatId=${chatId}`;
+        chatLink = `https://app.pruuf.pro/chats?chatId=${chatId}`;
       }
-    
+      const attachments: any=[]
       await sendEmail(acceptedProvider!.email, "Service Request Accepted" ,
         `<p>Dear Service Provider,</p>
         <p>Your Service is accepted by the User. Please Visit Website to discuss Details.</p>
         <p><strong>BY PRESSING THE LINK</strong></p>
         <p><a href=${chatLink}>Open Chat</a></p>
-         <p>Do Not reply to this email here</p>` );
-      await sendSms(acceptedProvider!.phone, "Your Service Accepted by the user. Check details: " + chatLink);
+         <p>Do Not reply to this email here</p>`, attachments );
+        
+    //  await sendSms(acceptedProvider!.phone, "Your Service Accepted by the user. Check details: " + chatLink);
   
        const stringaccpetedProviderIds = JSON.stringify(serviceRequest.acceptedProviderIds as any);
        const acceptedProvidersIds = JSON.parse(stringaccpetedProviderIds);    
@@ -465,6 +480,33 @@ export const serviceRerequestController = async (req: Request, res: Response) =>
       customer:  "anonymous customer"
 
     }
+
+    const topProviders = providersWithScores.slice(0, 5);
+
+    const topProviderIds = topProviders.map((provider) => provider.roleId);
+
+    const ServiceRequestLink = `https://app.pruuf.pro/service-request-available`
+ const attachments : any=[]
+    for (const providerId of topProviderIds) {
+      const provider = await ServiceProvider.findByPk(providerId);
+
+      if (provider) {
+
+        const isUSNumber = provider.phone.startsWith('+1');
+
+        if (isUSNumber) {
+          await phoneSms("You have received a new service request. Check details: " + ServiceRequestLink, provider.phone);
+        }
+        await sendEmail(provider.email, "New Service Request Received" ,
+        `<p>Dear Service Provider</p>,
+        <p>You have received a new Request from anonymous User.</p> 
+        <p> Please Visit Website to see Details.</p>
+        <p><strong>BY PRESSING THE LINK</strong></p>
+        <p><a href=${ServiceRequestLink}>Check Available Request</a></p>
+        <p>Do Not reply to this email here</p>`, attachments );
+
+      
+      }}
     if(originalRequest.topProviderIds.length === 0){
       return res.status(200).json({
         message: 'No more providers of this category or service',
@@ -618,7 +660,9 @@ export const serviceRequestOfProviders = async (req:Request,res: Response) => {
       }
     
       try {
-        const serviceRequests = await ServiceRequest.findAll();
+        const serviceRequests = await ServiceRequest.findAll({
+          order: [['createdAt', 'DESC']], 
+        });
     
         const matchingServiceRequests = serviceRequests.filter(request => {
           console.log(request.topProviderIds);
@@ -626,6 +670,15 @@ export const serviceRequestOfProviders = async (req:Request,res: Response) => {
           return topProviderIds.includes(providerId);
          
         });
+      
+        const currentTime = new Date();
+
+        const expiredRequests = serviceRequests.filter((request) => currentTime > request.requestExpiresAt);
+    for (const expiredRequest of expiredRequests) {
+      if (expiredRequest.status !== 'expired' && expiredRequest.status === 'searching') {
+        await expiredRequest.update({ status: 'expired' });
+      }
+    }
     
         if (matchingServiceRequests.length === 0) {
               
@@ -645,7 +698,8 @@ export const serviceRequestOfProviders = async (req:Request,res: Response) => {
           : "No one accepted",
           declinedstatus:  serviceRequest.declinedProviderIds
           ? serviceRequest.declinedProviderIds.includes(providerId as any)
-          : "No one declined"
+          : "No one declined",
+          requestExpiresAt: serviceRequest.requestExpiresAt
         }));
     
         return res.status(200).json({ ResponseMatchingService });
@@ -669,11 +723,20 @@ export const UsersRequests = async (req: Request, res: Response) => {
           where: {
             userId: userId,
           },
+          order: [['createdAt', 'DESC']],
         });
 
     
   if (serviceRequest.length === 0) {
     return res.status(404).json({ error: 'No service requests found for the provided userId' });
+  }
+
+  const currentTime = new Date();
+  const expiredRequests = serviceRequest.filter((request) => currentTime > request.requestExpiresAt);
+  for (const expiredRequest of expiredRequests) {
+    if (expiredRequest.status !== 'expired' && expiredRequest.status === 'searching') {
+      await expiredRequest.update({ status: 'expired' });
+    }
   }
 
   const responseServiceRequests = serviceRequest.map((serviceRequest) => ({
@@ -718,8 +781,8 @@ export const UsersRequests = async (req: Request, res: Response) => {
           return res.status(404).json({ error: 'Service request user not found' });
         }
     //http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/re-request?requestId=${requestId}
-        const ServiceRequestLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/re-request?requestId=${requestId}`;
-    
+    //    const ServiceRequestLink = `http://ec2-18-221-152-21.us-east-2.compute.amazonaws.com/re-request?requestId=${requestId}`;
+    const ServiceRequestLink = `https://app.pruuf.pro/re-request?requestId=${requestId}`;
         const emailContent = `
   <div style="color: black; white-space: nowrap;">
     <p>Dear Customer,</p>
@@ -745,9 +808,9 @@ if 'Not Found Provider' click ${ServiceRequestLink}?response=No
 
 Do not reply to this sms
 `;
-    
-        await sendEmail(serviceRequestUser.email, 'Provider Found Or Not', emailContent);
-        await sendSms(serviceRequestUser.phone, smsContent);
+const attachments : any=[]
+        await sendEmail(serviceRequestUser.email, 'Provider Found Or Not', emailContent,attachments);
+       // await sendSms(serviceRequestUser.phone, smsContent);
         
     
         res.status(200).json({ message: 'Email sent successfully' });
